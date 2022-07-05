@@ -3,10 +3,12 @@ import cv2 as cv
 import chess
 import operator
 
-from mlp import labels
-from result import Err, Ok
 from collections import defaultdict, Counter
 
+# small letters are for black pieces
+# capital letters are for white pieces
+# all sorted alphabetically
+labels = ["b", "B", "k", "K", "n", "N", "p", "P", "q", "Q", "r", "R"]
 
 def recognize_pieces(
     models, cropped_squares, turn: chess.Color, bottom_left: chess.Square
