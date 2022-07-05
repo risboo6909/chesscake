@@ -1,4 +1,6 @@
-.DS_Store
+.gitignore.DS_Store
+
+src/nn_train/data/*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

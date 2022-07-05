@@ -1,7 +1,10 @@
 from collections import defaultdict
-from result import Err
+from tkinter.tix import MAX
+from result import Err, Ok
 from points_area.points import PointsInArea
 from sklearn.cluster import DBSCAN
+from operator import itemgetter
+from typing import List, Tuple
 import cv2 as cv
 import random
 import numpy as np
@@ -12,7 +15,8 @@ BOARD_SQUARES = 64
 
 
 def draw_debug_lines(img, lines, color, size_x, size_y):
-    # draw the lines
+    """Draws debug lines"""
+
     if lines is not None:
         for i in range(0, len(lines)):
             rho = lines[i][0][0]
@@ -32,31 +36,27 @@ def draw_segmented(img, segmented, intersections, recognized_squares, size_x, si
     for square in recognized_squares:
         cv.rectangle(
             img,
-            (square[0], square[1]),
-            (square[2], square[3]),
+            (
+                int(square[0]),
+                int(square[1]),
+            ),
+            (
+                int(square[2]),
+                int(square[3]),
+            ),
             random.choices(range(256), k=3),
             -1,
         )
 
-    # square = recognized_squares[10]
-    # cv.rectangle(
-    #     img,
-    #     (square[0], square[1]),
-    #     (square[2], square[3]),
-    #     random.choices(range(256), k=3),
-    #     -1,
-    # )
-
-    if segmented:
-        draw_debug_lines(img, segmented[0], (255, 0, 0), size_x, size_y)
-        draw_debug_lines(img, segmented[1], (0, 255, 0), size_x, size_y)
+    # if segmented:
+    #     draw_debug_lines(img, segmented[0], (255, 0, 0), size_x, size_y)
+    #     draw_debug_lines(img, segmented[1], (0, 255, 0), size_x, size_y)
 
     for isect in intersections:
-        isect = isect[0]
         cv.rectangle(
             img,
-            (isect[0] - 1, isect[1] + 1),
-            (isect[0] + 1, isect[1] - 1),
+            (int(isect[0]) - 1, int(isect[1]) + 1),
+            (int(isect[0]) + 1, int(isect[1]) - 1),
             (255, 255, 255),
             2,
         )
@@ -73,7 +73,7 @@ def segment_by_angle_kmeans(lines, k=2):
 
     # define criteria = (type, max_iter, epsilon)
     attempts = 10
-    criteria = cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 0.5
+    criteria = cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 0.3
 
     # returns angles in [0, pi] in radians
     angles = np.array([line[0][1] for line in lines])
@@ -113,7 +113,10 @@ def intersection(line1, line2, width, height):
         x0, y0 = np.linalg.solve(A, b)
         x0, y0 = int(np.round(x0)), int(np.round(y0))
         if x0 <= width and y0 <= height:
-            return [[x0, y0]]
+            return (
+                x0,
+                y0,
+            )
     except:
         pass
 
@@ -132,8 +135,7 @@ def segmented_intersections(lines, width, height):
                     if intersect:
                         intersections.append(intersect)
 
-    # sort intersections by (x, y) coordinates
-    return list(sorted(intersections, key=lambda pair: pair[0]))
+    return intersections
 
 
 def find_rectangles(sorted_intersections, deviation, min_side_len, max_side_len):
@@ -155,8 +157,8 @@ def find_rectangles(sorted_intersections, deviation, min_side_len, max_side_len)
 
         for bottom_right in sorted_intersections[i + 1 :]:
 
-            x0, y0 = top_left[0]
-            x1, y1 = bottom_right[0]
+            x0, y0 = top_left
+            x1, y1 = bottom_right
 
             x_len = abs(x1 - x0)
             y_len = abs(y1 - y0)
@@ -176,7 +178,9 @@ def find_rectangles(sorted_intersections, deviation, min_side_len, max_side_len)
     return squares_found
 
 
-def group_by_rectangle_area(rectangles, epsilon):
+def group_by_rectangle_area(rectangles, epsilon: float):
+    """Groups rectangles by area"""
+
     data = np.array([(abs(r[0] - r[2]), abs(r[1] - r[3])) for r in rectangles])
     db = DBSCAN(eps=epsilon / 100, min_samples=10, n_jobs=-1)
     db.fit(data)
@@ -188,7 +192,11 @@ def group_by_rectangle_area(rectangles, epsilon):
     return clusters
 
 
-def rectangles_overlap(recognized_rectangles):
+def rectangles_overlap(
+    recognized_rectangles: List[Tuple[float, float, float, float]],
+):
+    """Checks if rectangles overlap"""
+
     num_overlaps = 0
 
     for i, r1 in enumerate(recognized_rectangles):
@@ -211,7 +219,29 @@ def rectangles_overlap(recognized_rectangles):
     return num_overlaps
 
 
-def resize_image(img, size_x, size_y):
+def thin_out_intersections(sorted_intersections, radius):
+    """Thins out intersections of lines recognized on board."""
+
+    res = []
+    scanned_points = set()
+
+    fuzzy_pts = PointsInArea(sorted_intersections)
+    for p in sorted_intersections:
+        if p in scanned_points:
+            continue
+        c_x, c_y, neighbours = fuzzy_pts.get_center_of_mass(p[0], p[1], radius)
+        scanned_points.update(neighbours)
+        res.append(
+            (
+                c_x,
+                c_y,
+            )
+        )
+
+    return list(sorted(res, key=itemgetter(0)))
+
+
+def resize_image(img, size_x: int, size_y: int):
     resized = cv.resize(img, (size_x, size_y), interpolation=cv.INTER_CUBIC)
     return resized
 
@@ -221,7 +251,7 @@ def grayscale_image(img):
     return gray
 
 
-def blur(img, k_size_x, k_size_y):
+def blur(img, k_size_x: int, k_size_y: int):
     blurry = cv.GaussianBlur(img, (k_size_x, k_size_y), 0)
     return blurry
 
@@ -231,11 +261,58 @@ def canny_image(img, threshold1, threshold2):
     return canny
 
 
-def compute_fitness(squares_num, overlaps_num):
-    if squares_num <= BOARD_SQUARES:
-        return squares_num - overlaps_num
+def rect_distances(rectangles):
+    """Calculates how many outstanders between rectangle distances"""
 
-    return BOARD_SQUARES - (squares_num - BOARD_SQUARES) - overlaps_num
+    if len(rectangles) < 2:
+        return 0
+
+    max_distance = 10
+    outstanders = 0
+
+    # try x axist first and then y axis
+    for coord_idx, sort_order in enumerate([(1, 0), (0, 1)]):
+
+        # sort rectangles from top left to bottom right
+        rectangles = sorted(rectangles, key=itemgetter(*sort_order))
+
+        # compute rectangle center points
+        center_points = [
+            (
+                (r[0] + r[2]) / 2,
+                (r[1] + r[3]) / 2,
+            )
+            for r in rectangles
+        ]
+
+        # compute distances between center points
+        distances = [
+            np.linalg.norm(p1[coord_idx] - p2[coord_idx])
+            for p1, p2 in zip(center_points, center_points[1:])
+            if p1[coord_idx] < p2[coord_idx]
+        ]
+
+        distances = sorted(distances)
+
+        # compute outstanding distances
+        if len(distances) > 1:
+            first_delta = distances[1] - distances[0]
+            # find how many rectangles there with the distances between them more than max_distance
+            for i, d in enumerate(zip(distances, distances[1:])):
+                delta = d[1] - d[0]
+                if delta - first_delta > max_distance:
+                    outstanders += len(distances) - i - 1
+                    break
+
+    return outstanders
+
+
+def compute_fitness(squares_num: int, invalid_num: int):
+    """Computes fitness of recognized squares"""
+    if squares_num <= BOARD_SQUARES:
+        return squares_num - invalid_num
+
+    return BOARD_SQUARES - (squares_num - BOARD_SQUARES) - invalid_num
 
 
 def scan(img, inp, debug):
@@ -250,12 +327,17 @@ def scan(img, inp, debug):
         max_side_len,
         epsilon,
         max_lines,
+        point_size,
     ) = inp
 
     img_height, img_width, _ = img.shape
 
+    best_cluster = []
+    squares_num = overlaps_num = 0
+    best_fitness, smallest_overlaps = -sys.maxsize, sys.maxsize
+
     if threshold2 <= threshold1:
-        return 0
+        return best_fitness, best_cluster
 
     prepared = canny_image(
         blur(grayscale_image(img), k_size_x, k_size_y), threshold1, threshold2
@@ -264,7 +346,7 @@ def scan(img, inp, debug):
     # try to distinguish straight
     lines = cv.HoughLines(prepared, 1, np.pi / 180, min_points_per_line, None, 0, 0)
     if lines is None:
-        return 0
+        return best_fitness, best_cluster
 
     lines = lines[:max_lines]
 
@@ -272,27 +354,30 @@ def scan(img, inp, debug):
     segmented = segment_by_angle_kmeans(lines)
 
     # find intersections of horizontal and vertical lines
-    sorted_intersections = segmented_intersections(segmented, img_width, img_height)
+    intersections = segmented_intersections(segmented, img_width, img_height)
+
+    # thin out intersections
+    sorted_intersections = thin_out_intersections(intersections, point_size)
 
     # find rectangles based on lines intersections
     recognized_rectangles = find_rectangles(
         sorted_intersections, side_len, min_side_len, max_side_len
     )
 
-    best_cluster = None
-    squares_num = overlaps_num = 0
-    best_fitness, smallest_overlaps = -sys.maxsize, sys.maxsize
-
     if recognized_rectangles:
 
         clusters = group_by_rectangle_area(list(recognized_rectangles), epsilon)
 
+        # find best cluster
         for cluster_id, cluster in clusters.items():
             if cluster_id == -1:
                 continue
 
             overlaps_num = rectangles_overlap(cluster)
-            squares_num = compute_fitness(len(cluster), overlaps_num)
+            rect_distances_num = rect_distances(cluster)
+            squares_num = compute_fitness(
+                len(cluster), overlaps_num + rect_distances_num
+            )
             if squares_num > best_fitness and smallest_overlaps > overlaps_num:
                 best_fitness = squares_num
                 smallest_overlaps = overlaps_num
@@ -300,10 +385,6 @@ def scan(img, inp, debug):
 
             if best_fitness == BOARD_SQUARES:
                 break
-
-        # best_cluster = max(clusters.values(), key=lambda item: len(item))
-        # overlaps_num = rectangles_overlap(best_cluster)
-        # best_fitness = compute_fitness(len(best_cluster), overlaps_num)
 
     if debug and best_cluster:
         draw_segmented(
@@ -314,23 +395,39 @@ def scan(img, inp, debug):
             img_width,
             img_height,
         )
-        return best_fitness
 
-    return best_fitness
+    return best_fitness, best_cluster
 
 
 def do_recognize(img):
     def inner(inp, _):
-        return scan(img, inp, debug=False)
+        best_fitness, _ = scan(img, inp, debug=False)
+        return best_fitness
 
     return inner
+
+
+def crop_squares(img, rectangles: List[Tuple[float, float, float, float]]):
+    """Crops squares from image"""
+
+    # sort rectangles from top left to bottom right
+    rectangles = sorted(rectangles, key=itemgetter(1, 0))
+
+    cropped = []
+    for rect in rectangles:
+        x0, y0, x1, y1 = rect
+        cropped.append(img[int(y0) : int(y1), int(x0) : int(x1)])
+
+    return cropped
 
 
 def func_generation(ga_instance):
     print(ga_instance.best_solution())
 
 
-def recognize_board(file_path):
+def recognize_board(file_path: str):
+    """Recognizes board from image"""
+
     img = cv.imread(file_path)
 
     # draw border which helps in case of board occupies the whole size of the picture for algorithm to be
@@ -341,44 +438,75 @@ def recognize_board(file_path):
 
     img_height, img_width, _ = img.shape
 
-    # resized_img = resize_image(img, 400, 400)
+    board_found = False
 
-    find_board = do_recognize(img)
+    # dynamic parameters for genetic algorithm
+    rectangles_group_epsilon = 110
+    max_lines = 30
+    generations = 1
+    sol_per_pop = 50
 
-    ga_instance = pygad.GA(
-        num_generations=20,
-        num_parents_mating=10,
-        mutation_type="adaptive",
-        fitness_func=find_board,
-        mutation_probability=[0.5, 0.2],
-        mutation_num_genes=[5, 2],
-        mutation_percent_genes=[40, 20],
-        crossover_probability=0.1,
-        on_generation=func_generation,
-        gene_space=[
-            range(10, 100),  # threshold1 for Canny
-            range(10, 200),  # threshold2 for Canny
-            range(80, max(img_width, img_height) + 2),  # minimum points laying on line
-            range(3, 11, 2),  # gauss
-            range(3, 11, 2),  # gauss
-            range(0, 5),  # maximum dispersion for a point of rectangle
-            range(10, 80),  # minimum side length
-            range(10, 300),  # maximum side length
-            range(50, 105),  # epsilon for DBSCAN algorithm
-            range(18, 31),
-        ],
-        gene_type=int,
-        sol_per_pop=300,
-        num_genes=10,
-        stop_criteria="reach_64",
-    )
+    resized_img = resize_image(img, 400, 400)
 
-    ga_instance.run()
-    solution, _, _ = ga_instance.best_solution()
+    for _ in range(5):
 
-    scan(img, solution, debug=True)
+        print("new epoch")
 
-    # ga_instance.plot_fitness()
+        find_board = do_recognize(img)
 
-    cv.imshow("Ready", img)
-    cv.waitKey(0)
+        ga_instance = pygad.GA(
+            num_generations=generations,
+            num_parents_mating=4,
+            mutation_type="adaptive",
+            fitness_func=find_board,
+            mutation_probability=[0.5, 0.2],
+            mutation_num_genes=[5, 2],
+            mutation_percent_genes=[40, 20],
+            crossover_probability=0.2,
+            on_generation=func_generation,
+            gene_space=[
+                range(10, 100),  # threshold1 for Canny
+                range(10, 200),  # threshold2 for Canny
+                range(
+                    80, max(img_width, img_height) + 2
+                ),  # minimum points laying on line
+                range(1, 11, 2),  # gauss
+                range(1, 11, 2),  # gauss
+                range(0, 8),  # maximum dispersion for a point of rectangle
+                range(10, 80),  # minimum side length
+                range(10, 300),  # maximum side length
+                range(50, rectangles_group_epsilon),  # epsilon for DBSCAN algorithm
+                range(18, max_lines),  # total number of lines
+                range(5, 30),  # point size
+            ],
+            gene_type=int,
+            sol_per_pop=sol_per_pop,
+            num_genes=11,
+            stop_criteria="reach_64",
+        )
+
+        ga_instance.run()
+        solution, fitness, _ = ga_instance.best_solution()
+
+        if fitness == BOARD_SQUARES:
+            board_found = True
+            break
+
+        # increase possible uncertainty for rectangle side sizes
+        rectangles_group_epsilon += 8
+        max_lines += 5
+        generations += 1
+        sol_per_pop += 50
+
+    if not board_found:
+        return Err("Board not found")
+
+    # solution = [ 37, 130, 428,   1,   9,   6,  51, 265, 107,  41,   5]
+
+    _, best_cluster = scan(img, solution, debug=False)
+    cropped = crop_squares(img, best_cluster)
+    rect_distances(best_cluster)
+
+    # cv.imshow("Debug", img)
+    # cv.waitKey(0)
+    return Ok(cropped)
