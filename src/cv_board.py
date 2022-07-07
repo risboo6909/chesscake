@@ -1,5 +1,4 @@
 from collections import defaultdict
-from tkinter.tix import MAX
 from result import Err, Ok
 from points_area.points import PointsInArea
 from sklearn.cluster import DBSCAN
@@ -178,11 +177,11 @@ def find_rectangles(sorted_intersections, deviation, min_side_len, max_side_len)
     return squares_found
 
 
-def group_by_rectangle_area(rectangles, epsilon: float):
+def group_by_rectangle_area(rectangles, area_delta: float):
     """Groups rectangles by area"""
 
     data = np.array([(abs(r[0] - r[2]), abs(r[1] - r[3])) for r in rectangles])
-    db = DBSCAN(eps=epsilon / 100, min_samples=10, n_jobs=-1)
+    db = DBSCAN(eps=area_delta / 100, min_samples=10, n_jobs=-1)
     db.fit(data)
 
     clusters = defaultdict(list)
@@ -325,7 +324,7 @@ def scan(img, inp, debug):
         side_len,
         min_side_len,
         max_side_len,
-        epsilon,
+        area_delta,
         max_lines,
         point_size,
     ) = inp
@@ -366,7 +365,7 @@ def scan(img, inp, debug):
 
     if recognized_rectangles:
 
-        clusters = group_by_rectangle_area(list(recognized_rectangles), epsilon)
+        clusters = group_by_rectangle_area(list(recognized_rectangles), area_delta)
 
         # find best cluster
         for cluster_id, cluster in clusters.items():
@@ -375,6 +374,7 @@ def scan(img, inp, debug):
 
             overlaps_num = rectangles_overlap(cluster)
             rect_distances_num = rect_distances(cluster)
+
             squares_num = compute_fitness(
                 len(cluster), overlaps_num + rect_distances_num
             )
@@ -425,10 +425,19 @@ def func_generation(ga_instance):
     print(ga_instance.best_solution())
 
 
-def recognize_board(file_path: str):
-    """Recognizes board from image"""
+def from_file_object(file):
+    file.seek(0)
+    img_array = np.asanyarray(bytearray(file.read()), dtype=np.uint8)
+    img = cv.imdecode(img_array, cv.IMREAD_COLOR)
+    return img
 
-    img = cv.imread(file_path)
+
+def from_path(file_path):
+    return cv.imread(file_path)
+
+
+def recognize_board(img):
+    """Recognizes board from image"""
 
     # draw border which helps in case of board occupies the whole size of the picture for algorithm to be
     # able to detect board edges
@@ -446,9 +455,10 @@ def recognize_board(file_path: str):
     generations = 1
     sol_per_pop = 50
 
-    resized_img = resize_image(img, 400, 400)
+    # add size constraints?
+    # img = imutils.resize(img, width=500, inter=cv.INTER_LANCZOS4)
 
-    for _ in range(5):
+    for _ in range(6):
 
         print("new epoch")
 
@@ -493,15 +503,13 @@ def recognize_board(file_path: str):
             break
 
         # increase possible uncertainty for rectangle side sizes
-        rectangles_group_epsilon += 8
+        rectangles_group_epsilon += 50
         max_lines += 5
         generations += 1
         sol_per_pop += 50
 
     if not board_found:
         return Err("Board not found")
-
-    # solution = [ 37, 130, 428,   1,   9,   6,  51, 265, 107,  41,   5]
 
     _, best_cluster = scan(img, solution, debug=False)
     cropped = crop_squares(img, best_cluster)

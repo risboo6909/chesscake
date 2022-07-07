@@ -10,10 +10,23 @@ from collections import defaultdict, Counter
 # all sorted alphabetically
 labels = ["b", "B", "k", "K", "n", "N", "p", "P", "q", "Q", "r", "R"]
 
-def recognize_pieces(
-    models, cropped_squares, turn: chess.Color, bottom_left: chess.Square
-):
+
+def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> str:
     flatten = []
+
+    if turn == "White":
+        turn = chess.WHITE
+    else:
+        turn = chess.BLACK
+
+    if bottom_left == "A1":
+        bottom_left = chess.A1
+    elif bottom_left == "A8":
+        bottom_left = chess.A8
+    elif bottom_left == "H1":
+        bottom_left = chess.H1
+    elif bottom_left == "H8":
+        bottom_left = chess.H8
 
     board = chess.Board()
     board.clear_board()
@@ -35,7 +48,7 @@ def recognize_pieces(
             if max(v) >= 0.5:
                 results[square_idx][class_idx] += 1
 
-    consensus = 3
+    consensus = 4
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if agreed >= consensus:
@@ -52,6 +65,7 @@ def recognize_pieces(
     board.turn = turn
 
     print(board.unicode(empty_square=".", invert_color=True, borders=False))
-    print(board.fen())
+
+    return board.fen()
     # cv.imshow("Debug", cropped_squares[3])
     # cv.waitKey(0)
