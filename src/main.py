@@ -27,7 +27,8 @@ samples_dir = os.path.join(parent_dir, "samples")
 
 UPLOAD_PHOTO, WHO_MOVES, RECOGNIZE, END_POLL = range(4)
 
-lichess_url = 'https://lichess.org/editor/{}'.format
+lichess_url = "https://lichess.org/editor/{}".format
+
 
 def load_models():
     models = []
@@ -38,11 +39,13 @@ def load_models():
 
     return models
 
+
 ray.init()
 
 models = load_models()
 stats = Stats()
 task_mgr = TaskManager(models, stats)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
@@ -88,6 +91,7 @@ async def who_moves(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return RECOGNIZE
 
+
 async def end_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_feedback = update.message.text
     await update.message.reply_text(
@@ -101,6 +105,7 @@ async def end_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stats.feedback_recognize_fail += 1
 
     return ConversationHandler.END
+
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation"""
@@ -133,7 +138,7 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Sorry, I'm too busy right now. Try again later.",
             reply_markup=ReplyKeyboardRemove(),
         )
-        print('queue is full, request declined for user: {}', task.user_id)
+        print("queue is full, request declined for user: {}", task.user_id)
         return ConversationHandler.END
 
     await context.bot.send_message(
@@ -175,6 +180,7 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return END_POLL
 
+
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if task_mgr.job_requested(user_id):
@@ -208,18 +214,17 @@ if __name__ == "__main__":
 
     # debug_local()
 
-    tg_token = os.getenv('BOT_TOKEN')
+    tg_token = os.getenv("BOT_TOKEN")
     if tg_token is None:
         raise ValueError("BOT_TOKEN environment variable is not set")
 
-    application = (
-        ApplicationBuilder()
-        .token(tg_token)
-        .build()
-    )
+    application = ApplicationBuilder().token(tg_token).build()
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start), CommandHandler("stats", get_stats)],
+        entry_points=[
+            CommandHandler("start", start),
+            CommandHandler("stats", get_stats),
+        ],
         states={
             UPLOAD_PHOTO: [
                 MessageHandler(filters.PHOTO, upload_photo),

@@ -1,5 +1,4 @@
 class Stats(object):
-
     def __init__(self):
         self.requests_total = 0
         self.requests_success = 0
@@ -9,7 +8,7 @@ class Stats(object):
         self.queue_size = 0
         self.request_times = []
 
-    def add_request_time(self, time):        
+    def add_request_time(self, time):
         self.request_times.append(time)
         if len(self.request_times) > 10000:
             self.request_times.pop(0)
@@ -36,8 +35,14 @@ class Stats(object):
             "Request times 50 percentile: {:.2f} sec\n"
             "Request times 90 percentile: {:.2f} sec\n"
             "Request times 99 percentile: {:.2f} sec\n".format(
-                self.requests_total, self.requests_success, self.requests_failed, 
-                self.feedback_recognize_ok, self.feedback_recognize_fail, self.queue_size,
-                perc50, perc90, perc99,
+                self.requests_total,
+                self.requests_success,
+                self.requests_failed,
+                self.feedback_recognize_ok,
+                self.feedback_recognize_fail,
+                self.queue_size,
+                perc50,
+                perc90,
+                perc99,
             )
         )
