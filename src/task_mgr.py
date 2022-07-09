@@ -11,6 +11,8 @@ from nn_pieces import recognize_pieces
 from io import BytesIO
 from queue import Queue
 
+MAX_QUEUE_SIZE = 10
+
 
 class Task(object):
     def __init__(self, turn: str, bottom_left: str, board: BytesIO, user_id: str):
@@ -61,13 +63,17 @@ class Result(object):
 
 
 class TaskManager(object):
-    def __init__(self, models):
-        self.tasks = Queue(maxsize=10)
+    def __init__(self, models, stats):
+        self.tasks = Queue(maxsize=MAX_QUEUE_SIZE)
         self.models = models
+        self.stats = stats
         self.user_ids = set()
 
     def job_requested(self, user_id):
         return user_id in self.user_ids
+
+    def get_queue_size(self):
+        return self.tasks.qsize()
 
     def start(self):
         worker = threading.Thread(target=lambda: self.worker())
@@ -76,6 +82,7 @@ class TaskManager(object):
     def worker(self):
         while True:
             try:
+                self.stats.queue_size = self.get_queue_size()
                 task = self.dequeue_task()
                 print("Processing task '{}'".format(task.ticket))
                 future = recognize.remote(
@@ -91,9 +98,11 @@ class TaskManager(object):
 
     def enqueue_task(self, task) -> Result:
         try:
+            self.stats.queue_size = self.get_queue_size()
             self.user_ids.add(task.user_id)
             self.tasks.put_nowait(task)
         except queue.Full:
+            self.user_ids.remove(task.user_id)
             return Result(False, 0)
         else:
             res = Result(True, self.tasks.qsize())

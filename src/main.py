@@ -5,6 +5,7 @@ import sys
 import chess
 import joblib
 import ray
+import time
 
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
@@ -18,14 +19,13 @@ from telegram.ext import (
 from cv_board import recognize_board, from_file_object, from_path
 from nn_pieces import recognize_pieces
 from task_mgr import TaskManager, Task
+from stats import Stats
 from result import Err
 
 parent_dir = pathlib.Path(__file__).parent.parent.resolve()
 samples_dir = os.path.join(parent_dir, "samples")
 
-ray.init()
-
-UPLOAD_PHOTO, WHO_MOVES, RECOGNIZE = range(3)
+UPLOAD_PHOTO, WHO_MOVES, RECOGNIZE, END_POLL = range(4)
 
 lichess_url = 'https://lichess.org/editor/{}'.format
 
@@ -38,10 +38,11 @@ def load_models():
 
     return models
 
+ray.init()
 
 models = load_models()
-task_mgr = TaskManager(models)
-
+stats = Stats()
+task_mgr = TaskManager(models, stats)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
@@ -60,7 +61,6 @@ async def upload_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     new_file = await update.message.photo[-1].get_file()
     await new_file.download(out=buffer)
     context.bot_data["buffer"] = buffer
-
     reply_keyboard = [["A1", "A8", "H1", "H8"]]
 
     await update.message.reply_text(
@@ -79,7 +79,7 @@ async def who_moves(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.bot_data["bottom_left"] = update.message.text
 
     await update.message.reply_text(
-        "Whose turn?",
+        "Whose turn is it now?",
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard,
             one_time_keyboard=True,
@@ -88,13 +88,33 @@ async def who_moves(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return RECOGNIZE
 
+async def end_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_feedback = update.message.text
+    await update.message.reply_text(
+        "Thank you for using this bot",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+
+    if user_feedback == "Yes":
+        stats.feedback_recognize_ok += 1
+    elif user_feedback == "No":
+        stats.feedback_recognize_fail += 1
+
+    return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Cancels and ends the conversation."""
+    """Cancels and ends the conversation"""
     await update.message.reply_text(
-        "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
+        "Bye! I hope we can talk again some day", reply_markup=ReplyKeyboardRemove()
     )
     return ConversationHandler.END
+
+
+async def get_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Stats:\n\n{}".format(stats.get_stats()),
+    )
 
 
 async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -113,33 +133,47 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Sorry, I'm too busy right now. Try again later.",
             reply_markup=ReplyKeyboardRemove(),
         )
-
+        print('queue is full, request declined for user: {}', task.user_id)
         return ConversationHandler.END
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text='You are {} in queue, your ticket is "{}", please wait...'.format(
+        text='You are number {} in queue, your ticket is "{}", please wait...'.format(
             res.place, task.ticket
         ),
         reply_markup=ReplyKeyboardRemove(),
     )
 
+    st = time.time()
     await res.event.wait()
+    stats.add_request_time(time.time() - st)
 
+    stats.requests_total += 1
     if isinstance(task.result[0], Err):
+        stats.requests_failed += 1
         await context.bot.send_message(
             chat_id=update.effective_chat.id, text=task.result[0].value
         )
+        return ConversationHandler.END
     else:
+        stats.requests_success += 1
         fen = task.result[0].value
         fen_url = fen.replace(" ", "_")
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="FEN: {}\n\nAnalyze in lichess: {}".format(fen, lichess_url(fen_url)),
         )
-
-    return ConversationHandler.END
-
+        # ask user about recognition quality
+        reply_keyboard = [["Yes", "No", "Skip"]]
+        await update.message.reply_text(
+            "Was recognition successful?",
+            reply_markup=ReplyKeyboardMarkup(
+                reply_keyboard,
+                one_time_keyboard=True,
+                input_field_placeholder="Yes, No or Skip?",
+            ),
+        )
+        return END_POLL
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -185,7 +219,7 @@ if __name__ == "__main__":
     )
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[CommandHandler("start", start), CommandHandler("stats", get_stats)],
         states={
             UPLOAD_PHOTO: [
                 MessageHandler(filters.PHOTO, upload_photo),
@@ -195,6 +229,9 @@ if __name__ == "__main__":
             ],
             RECOGNIZE: [
                 MessageHandler(filters.Regex("^(White|Black)$"), recognize),
+            ],
+            END_POLL: [
+                MessageHandler(filters.Regex("^(Yes|No|Skip)$"), end_poll),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],

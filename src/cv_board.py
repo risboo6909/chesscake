@@ -513,7 +513,6 @@ def recognize_board(img):
 
     _, best_cluster = scan(img, solution, debug=False)
     cropped = crop_squares(img, best_cluster)
-    rect_distances(best_cluster)
 
     # cv.imshow("Debug", img)
     # cv.waitKey(0)
