@@ -149,6 +149,9 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardRemove(),
     )
 
+    # hacky thing, will be removed when proper logging is implemented
+    sys.stdout.flush()
+
     st = time.time()
     await res.event.wait()
     stats.add_request_time(time.time() - st)
