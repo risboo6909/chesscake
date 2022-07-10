@@ -7,3 +7,6 @@ run: build
 
 daemonize: build
 	nohup .venv/bin/python3 src/main.py >log 2>&1 &
+
+kill:
+	pkill 9 -f chesscake
