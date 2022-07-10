@@ -458,7 +458,7 @@ def recognize_board(img):
     # add size constraints?
     # img = imutils.resize(img, width=500, inter=cv.INTER_LANCZOS4)
 
-    for _ in range(6):
+    for _ in range(4):
 
         print("new epoch")
 
@@ -504,9 +504,9 @@ def recognize_board(img):
 
         # increase possible uncertainty for rectangle side sizes
         rectangles_group_epsilon += 50
-        max_lines += 5
-        generations += 1
-        sol_per_pop += 50
+        max_lines += 8
+        generations += 2
+        sol_per_pop += 20
 
     if not board_found:
         return Err("Board not found")

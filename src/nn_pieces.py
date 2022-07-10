@@ -45,7 +45,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             # get index of max value
             class_idx = np.argmax(v)
             # get most probable class
-            if max(v) >= 0.5:
+            if max(v) >= 0.4:
                 results[square_idx][class_idx] += 1
 
     consensus = 4
