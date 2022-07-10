@@ -333,7 +333,7 @@ def scan(img, inp, debug):
 
     best_cluster = []
     squares_num = overlaps_num = 0
-    best_fitness, smallest_overlaps = -sys.maxsize, sys.maxsize
+    best_fitness, smallest_invalid = -sys.maxsize, sys.maxsize
 
     if threshold2 <= threshold1:
         return best_fitness, best_cluster
@@ -373,14 +373,16 @@ def scan(img, inp, debug):
                 continue
 
             overlaps_num = rectangles_overlap(cluster)
-            rect_distances_num = rect_distances(cluster)
+            outstanders_num = rect_distances(cluster)
+
+            invalid_squares = overlaps_num + outstanders_num
 
             squares_num = compute_fitness(
-                len(cluster), overlaps_num + rect_distances_num
+                len(cluster), invalid_squares
             )
-            if squares_num > best_fitness and smallest_overlaps > overlaps_num:
+            if squares_num > best_fitness and smallest_invalid > invalid_squares:
                 best_fitness = squares_num
-                smallest_overlaps = overlaps_num
+                smallest_invalid = invalid_squares
                 best_cluster = cluster
 
             if best_fitness == BOARD_SQUARES:
@@ -450,33 +452,36 @@ def recognize_board(img):
     board_found = False
 
     # dynamic parameters for genetic algorithm
-    rectangles_group_epsilon = 110
-    max_lines = 30
-    generations = 1
-    sol_per_pop = 50
+    # rectangles_group_epsilon = 110
+    # max_lines = 30
+    # sol_per_pop = 50
+
+    rectangles_group_epsilon = 300
+    max_lines = 40
+    sol_per_pop = 70
 
     # add size constraints?
     # img = imutils.resize(img, width=500, inter=cv.INTER_LANCZOS4)
 
-    for _ in range(4):
+    for _ in range(1):
 
         print("new epoch")
 
         find_board = do_recognize(img)
 
         ga_instance = pygad.GA(
-            num_generations=generations,
             num_parents_mating=4,
+            num_generations=12,
             mutation_type="adaptive",
             fitness_func=find_board,
             mutation_probability=[0.5, 0.2],
             mutation_num_genes=[5, 2],
             mutation_percent_genes=[40, 20],
-            crossover_probability=0.2,
+            crossover_probability=0.1,
             on_generation=func_generation,
             gene_space=[
-                range(10, 100),  # threshold1 for Canny
-                range(10, 200),  # threshold2 for Canny
+                range(1, 100),  # threshold1 for Canny
+                range(1, 200),  # threshold2 for Canny
                 range(
                     80, max(img_width, img_height) + 2
                 ),  # minimum points laying on line
@@ -485,14 +490,15 @@ def recognize_board(img):
                 range(0, 8),  # maximum dispersion for a point of rectangle
                 range(10, 80),  # minimum side length
                 range(10, 300),  # maximum side length
-                range(50, rectangles_group_epsilon),  # epsilon for DBSCAN algorithm
+                range(30, rectangles_group_epsilon),  # epsilon for DBSCAN algorithm
                 range(18, max_lines),  # total number of lines
                 range(5, 30),  # point size
             ],
             gene_type=int,
             sol_per_pop=sol_per_pop,
             num_genes=11,
-            stop_criteria="reach_64",
+            parallel_processing=["thread", 2],  # looks like this feature is buggy
+            stop_criteria=["reach_64", "saturate_8"],
         )
 
         ga_instance.run()
@@ -503,10 +509,9 @@ def recognize_board(img):
             break
 
         # increase possible uncertainty for rectangle side sizes
-        rectangles_group_epsilon += 50
-        max_lines += 8
-        generations += 2
-        sol_per_pop += 20
+        rectangles_group_epsilon += 40
+        max_lines += 5
+        sol_per_pop += 10
 
     if not board_found:
         return Err("Board not found")

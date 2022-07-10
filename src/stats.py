@@ -5,6 +5,7 @@ class Stats(object):
         self.requests_failed = 0
         self.feedback_recognize_ok = 0
         self.feedback_recognize_fail = 0
+        self.feedback_recognize_part = 0
         self.queue_size = 0
         self.request_times = []
 
@@ -29,8 +30,9 @@ class Stats(object):
             "Total requests: {}\n"
             "Successful requests: {}\n"
             "Failed requests: {}\n"
-            "Successful recognitions (based on feedback): {}\n"
-            "Failed recognitions (based on feedback): {}\n"
+            "Precise recognitions: {}\n"
+            "Wrong recognitions: {}\n"
+            "Partially precise recognition: {}\n"
             "Tasks queue size: {}\n"
             "Request times 50 percentile: {:.2f} sec\n"
             "Request times 90 percentile: {:.2f} sec\n"
@@ -40,6 +42,7 @@ class Stats(object):
                 self.requests_failed,
                 self.feedback_recognize_ok,
                 self.feedback_recognize_fail,
+                self.feedback_recognize_part,
                 self.queue_size,
                 perc50,
                 perc90,

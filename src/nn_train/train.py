@@ -42,7 +42,6 @@ def load_images(train_folder_path):
 
 
 sometimes = lambda aug: iaa.Sometimes(0.3, aug)
-
 seq = iaa.Sequential(
     [
         sometimes(
@@ -59,7 +58,7 @@ seq = iaa.Sequential(
             ]
         ),
         iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),  # sharpen images
-        iaa.Fliplr(0.1),  # horizontally flip 10% of the images
+        # iaa.Fliplr(0.1),  # horizontally flip 10% of the images
         iaa.GaussianBlur(sigma=(0, 3.0)),  # blur images with a sigma of 0 to 3.0
         iaa.Resize((20, 20), interpolation=Image.Resampling.LANCZOS),
     ]
@@ -67,11 +66,11 @@ seq = iaa.Sequential(
 
 if __name__ == "__main__":
 
-    for idx in range(10):
+    for idx in range(5):
 
         accuracy = 0
 
-        while accuracy < 0.8:
+        while accuracy < 0.82:
 
             images, exp_output = load_images("data")
             images_aug = seq(images=images)
@@ -102,11 +101,11 @@ if __name__ == "__main__":
             mlp = MLPClassifier(
                 hidden_layer_sizes=(
                     200,
-                    100,
+                    200,
                 ),
-                max_iter=40000,
-                alpha=0.01,
-                activation="logistic",
+                max_iter=50000,
+                alpha=0.1,
+                activation="tanh",
                 solver="lbfgs",
                 # verbose=True,
                 # random_state=1,

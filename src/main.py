@@ -103,6 +103,8 @@ async def end_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stats.feedback_recognize_ok += 1
     elif user_feedback == "No":
         stats.feedback_recognize_fail += 1
+    elif user_feedback == "Partially":
+        stats.feedback_recognize_part += 1
 
     return ConversationHandler.END
 
@@ -172,13 +174,13 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="FEN: {}\n\nAnalyze in lichess: {}".format(fen, lichess_url(fen_url)),
         )
         # ask user about recognition quality
-        reply_keyboard = [["Yes", "No", "Skip"]]
+        reply_keyboard = [["Yes", "No", "Partially"]]
         await update.message.reply_text(
-            "Was recognition successful?",
+            "Was recognition precise?",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyboard,
                 one_time_keyboard=True,
-                input_field_placeholder="Yes, No or Skip?",
+                input_field_placeholder="Yes, No or Partially?",
             ),
         )
         return END_POLL
@@ -239,7 +241,7 @@ if __name__ == "__main__":
                 MessageHandler(filters.Regex("^(White|Black)$"), recognize),
             ],
             END_POLL: [
-                MessageHandler(filters.Regex("^(Yes|No|Skip)$"), end_poll),
+                MessageHandler(filters.Regex("^(Yes|No|Partially)$"), end_poll),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
