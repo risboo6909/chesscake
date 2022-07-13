@@ -45,10 +45,10 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             # get index of max value
             class_idx = np.argmax(v)
             # get most probable class
-            if max(v) > 0.6:
+            if max(v) > 0.5:
                 results[square_idx][class_idx] += 1
 
-    consensus = 3
+    consensus = 2
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if agreed >= consensus:
@@ -64,5 +64,4 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
 
     board.turn = turn
 
-    #return board.fen(), board.unicode(empty_square=".", invert_color=True, borders=False)
     return board

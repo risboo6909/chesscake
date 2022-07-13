@@ -260,11 +260,8 @@ def canny_image(img, threshold1, threshold2):
     return canny
 
 
-def rect_distances(rectangles):
+def rect_distances(rectangles, width, height):
     """Calculates how many outstanders between rectangle distances"""
-
-    if len(rectangles) < 64:
-        return 0
 
     max_distance = 10
     outstanders = 0
@@ -277,6 +274,15 @@ def rect_distances(rectangles):
         )
         for r in rectangles
     ]
+
+    for p in center_points:
+        if p[0] < 0 or  p[0] > width:
+            outstanders += 1
+        elif p[1] < 0 or  p[1] > height:
+            outstanders += 1
+
+    if len(rectangles) < 64:
+        return 0
 
     # try x axist first and then y axis
     for coord_idx, sort_order in enumerate([(1, 0), (0, 1)]):
@@ -373,7 +379,7 @@ def scan(img, inp, debug):
                 continue
 
             overlaps_num = rectangles_overlap(cluster)
-            outstanders_num = rect_distances(cluster)
+            outstanders_num = rect_distances(cluster, img_width, img_height)
 
             invalid_squares = overlaps_num + outstanders_num
 
