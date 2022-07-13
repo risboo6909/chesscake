@@ -203,7 +203,7 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def debug_local():
-    image_path = os.path.join(samples_dir, "fail3.jpg")
+    image_path = os.path.join(samples_dir, "anton2.jpg")
     cropped_squares = recognize_board(from_path(image_path))
 
     if isinstance(cropped_squares, Err):
@@ -218,6 +218,7 @@ def debug_local():
 if __name__ == "__main__":
 
     # debug_local()
+    # sys.exit(0)
 
     tg_token = os.getenv("BOT_TOKEN")
     if tg_token is None:

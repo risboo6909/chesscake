@@ -263,30 +263,30 @@ def canny_image(img, threshold1, threshold2):
 def rect_distances(rectangles):
     """Calculates how many outstanders between rectangle distances"""
 
-    if len(rectangles) < 2:
+    if len(rectangles) < 64:
         return 0
 
     max_distance = 10
     outstanders = 0
 
+    # compute rectangle center points
+    center_points = [
+        (
+            (r[0] + r[2]) / 2,
+            (r[1] + r[3]) / 2,
+        )
+        for r in rectangles
+    ]
+
     # try x axist first and then y axis
     for coord_idx, sort_order in enumerate([(1, 0), (0, 1)]):
 
-        # sort rectangles from top left to bottom right
-        rectangles = sorted(rectangles, key=itemgetter(*sort_order))
-
-        # compute rectangle center points
-        center_points = [
-            (
-                (r[0] + r[2]) / 2,
-                (r[1] + r[3]) / 2,
-            )
-            for r in rectangles
-        ]
+        # sort centers from top left to bottom right
+        center_points = sorted(center_points, key=itemgetter(*sort_order))
 
         # compute distances between center points
         distances = [
-            np.linalg.norm(p1[coord_idx] - p2[coord_idx])
+            abs(p1[coord_idx] - p2[coord_idx])
             for p1, p2 in zip(center_points, center_points[1:])
             if p1[coord_idx] < p2[coord_idx]
         ]
@@ -377,9 +377,7 @@ def scan(img, inp, debug):
 
             invalid_squares = overlaps_num + outstanders_num
 
-            squares_num = compute_fitness(
-                len(cluster), invalid_squares
-            )
+            squares_num = compute_fitness(len(cluster), invalid_squares)
             if squares_num > best_fitness and smallest_invalid > invalid_squares:
                 best_fitness = squares_num
                 smallest_invalid = invalid_squares
@@ -458,7 +456,7 @@ def recognize_board(img):
 
     rectangles_group_epsilon = 300
     max_lines = 40
-    sol_per_pop = 70
+    sol_per_pop = 100
 
     # add size constraints?
     # img = imutils.resize(img, width=500, inter=cv.INTER_LANCZOS4)
@@ -470,14 +468,14 @@ def recognize_board(img):
         find_board = do_recognize(img)
 
         ga_instance = pygad.GA(
-            num_parents_mating=4,
+            num_parents_mating=6,
             num_generations=12,
             mutation_type="adaptive",
             fitness_func=find_board,
-            mutation_probability=[0.5, 0.2],
+            mutation_probability=[0.7, 0.2],
             mutation_num_genes=[5, 2],
-            mutation_percent_genes=[40, 20],
-            crossover_probability=0.1,
+            mutation_percent_genes=[50, 20],
+            crossover_probability=0.2,
             on_generation=func_generation,
             gene_space=[
                 range(1, 100),  # threshold1 for Canny
@@ -488,16 +486,16 @@ def recognize_board(img):
                 range(1, 11, 2),  # gauss
                 range(1, 11, 2),  # gauss
                 range(0, 8),  # maximum dispersion for a point of rectangle
-                range(10, 80),  # minimum side length
-                range(10, 300),  # maximum side length
+                range(10, 80, 3),  # minimum side length
+                range(10, 300, 3),  # maximum side length
                 range(30, rectangles_group_epsilon),  # epsilon for DBSCAN algorithm
                 range(18, max_lines),  # total number of lines
-                range(5, 30),  # point size
+                range(5, 30, 2),  # point size
             ],
             gene_type=int,
             sol_per_pop=sol_per_pop,
             num_genes=11,
-            parallel_processing=["thread", 2],  # looks like this feature is buggy
+            parallel_processing=["thread", 4],  # looks like this feature is buggy
             stop_criteria=["reach_64", "saturate_8"],
         )
 

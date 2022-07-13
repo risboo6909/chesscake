@@ -34,7 +34,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
     for img in cropped_squares:
         img = cv.resize(img, (20, 20), interpolation=cv.INTER_LANCZOS4)
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-        flatten.append(gray.flatten())
+        flatten.append(img.flatten())
 
     # normalize pixels intensity
     flatten = np.array(flatten) / 255.0
@@ -45,10 +45,10 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             # get index of max value
             class_idx = np.argmax(v)
             # get most probable class
-            if max(v) > 0.2:
+            if max(v) > 0.6:
                 results[square_idx][class_idx] += 1
 
-    consensus = 4
+    consensus = 3
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if agreed >= consensus:
@@ -67,4 +67,3 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
     print(board.unicode(empty_square=".", invert_color=True, borders=False))
 
     return board.fen()
-

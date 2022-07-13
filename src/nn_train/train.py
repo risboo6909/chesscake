@@ -33,7 +33,7 @@ def load_images(train_folder_path):
 
         for _ in range(10):
             images.append(
-                cv.cvtColor(cv.imread(file_path), cv.COLOR_BGR2GRAY),
+                cv.imread(file_path),
             )
 
             labels.append(label)
@@ -61,6 +61,7 @@ seq = iaa.Sequential(
         # iaa.Fliplr(0.1),  # horizontally flip 10% of the images
         iaa.GaussianBlur(sigma=(0, 3.0)),  # blur images with a sigma of 0 to 3.0
         iaa.Resize((20, 20), interpolation=Image.Resampling.LANCZOS),
+        iaa.Grayscale(alpha=1.0),
     ]
 )
 
