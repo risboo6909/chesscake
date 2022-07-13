@@ -64,6 +64,5 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
 
     board.turn = turn
 
-    print(board.unicode(empty_square=".", invert_color=True, borders=False))
-
-    return board.fen()
+    #return board.fen(), board.unicode(empty_square=".", invert_color=True, borders=False)
+    return board

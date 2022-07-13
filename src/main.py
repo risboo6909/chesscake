@@ -16,6 +16,7 @@ from telegram.ext import (
     ConversationHandler,
     filters,
 )
+from telegram.constants import ParseMode
 from cv_board import recognize_board, from_file_object, from_path
 from nn_pieces import recognize_pieces
 from task_mgr import TaskManager, Task
@@ -167,11 +168,13 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
     else:
         stats.requests_success += 1
-        fen = task.result[0].value
+        board = task.result[0].value
+        fen = board.fen()
         fen_url = fen.replace(" ", "_")
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="FEN: {}\n\nAnalyze in lichess: {}".format(fen, lichess_url(fen_url)),
+            text=f"Board:`\n{board}`\n\nFEN: `{fen}`\n\nAnalyze on [lichess]({lichess_url(fen_url)})",
+            parse_mode=ParseMode.MARKDOWN_V2,
         )
         # ask user about recognition quality
         reply_keyboard = [["Yes", "No", "Partially"]]

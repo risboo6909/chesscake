@@ -47,10 +47,10 @@ def recognize(models, board, turn, bottom_left) -> Result:
     cropped_squares = recognize_board(from_file_object(board))
     if isinstance(cropped_squares, Err):
         return Err("Couldn't recognize board :(")
-    result = recognize_pieces(
+    board = recognize_pieces(
         models, cropped_squares.value, turn=turn, bottom_left=bottom_left
     )
-    return Ok(result)
+    return Ok(board)
 
 
 class Result(object):
