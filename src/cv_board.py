@@ -442,7 +442,7 @@ def from_path(file_path):
     return cv.imread(file_path)
 
 
-def recognize_board(img):
+def recognize_board(img, debug):
     """Recognizes board from image"""
 
     # draw border which helps in case of board occupies the whole size of the picture for algorithm to be
@@ -460,7 +460,7 @@ def recognize_board(img):
     # max_lines = 30
     # sol_per_pop = 50
 
-    rectangles_group_epsilon = 300
+    rectangles_group_epsilon = 220
     max_lines = 40
     sol_per_pop = 100
 
@@ -501,8 +501,8 @@ def recognize_board(img):
             gene_type=int,
             sol_per_pop=sol_per_pop,
             num_genes=11,
-            parallel_processing=["thread", 4],  # looks like this feature is buggy
-            stop_criteria=["reach_64", "saturate_8"],
+            #parallel_processing=["thread", 2],  # looks like this feature is buggy
+            stop_criteria=["reach_64", "saturate_6"],
         )
 
         ga_instance.run()
@@ -520,9 +520,11 @@ def recognize_board(img):
     if not board_found:
         return Err("Board not found")
 
-    _, best_cluster = scan(img, solution, debug=False)
+    _, best_cluster = scan(img, solution, debug)
     cropped = crop_squares(img, best_cluster)
 
-    # cv.imshow("Debug", img)
-    # cv.waitKey(0)
+    if debug:
+        cv.imshow("Debug", img)
+        cv.waitKey(0)
+
     return Ok(cropped)

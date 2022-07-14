@@ -44,7 +44,7 @@ class Event_ts(asyncio.Event):
 
 @ray.remote
 def recognize(models, board, turn, bottom_left) -> Result:
-    cropped_squares = recognize_board(from_file_object(board))
+    cropped_squares = recognize_board(from_file_object(board), debug=False)
     if isinstance(cropped_squares, Err):
         return Err("Couldn't recognize board :(")
     board = recognize_pieces(

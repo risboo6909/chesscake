@@ -206,8 +206,8 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def debug_local():
-    image_path = os.path.join(samples_dir, "anton2.jpg")
-    cropped_squares = recognize_board(from_path(image_path))
+    image_path = os.path.join(samples_dir, "board9.png")
+    cropped_squares = recognize_board(from_path(image_path), debug=True)
 
     if isinstance(cropped_squares, Err):
         sys.exit(1)

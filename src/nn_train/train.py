@@ -67,11 +67,11 @@ seq = iaa.Sequential(
 
 if __name__ == "__main__":
 
-    for idx in range(5):
+    for idx in range(1):
 
         accuracy = 0
 
-        while accuracy < 0.82:
+        while accuracy < 0.87:
 
             images, exp_output = load_images("data")
             images_aug = seq(images=images)
@@ -101,8 +101,10 @@ if __name__ == "__main__":
 
             mlp = MLPClassifier(
                 hidden_layer_sizes=(
-                    200,
-                    200,
+                    800,
+                    500,
+                    300,
+                    100,
                 ),
                 max_iter=50000,
                 alpha=0.1,

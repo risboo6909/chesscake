@@ -48,7 +48,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             if max(v) > 0.5:
                 results[square_idx][class_idx] += 1
 
-    consensus = 2
+    consensus = 1
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if agreed >= consensus:
