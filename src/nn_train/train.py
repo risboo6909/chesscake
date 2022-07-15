@@ -12,7 +12,7 @@ from imgaug import augmenters as iaa
 
 def get_label(file_path):
     file_name = os.path.basename(file_path)
-    # classic_knight_black_1.png -> knight_black
+    # classic_knight_black_1.png -> knight_black_1
     try:
         return file_name.split(".")[0].split("_", 1)[1].rsplit("_", 1)[0]
     except:
@@ -33,7 +33,9 @@ def load_images(train_folder_path):
 
         for _ in range(10):
             images.append(
-                cv.imread(file_path),
+                cv.cvtColor(
+                    cv.imread(file_path)
+                , cv.COLOR_BGR2GRAY),
             )
 
             labels.append(label)
@@ -47,7 +49,7 @@ seq = iaa.Sequential(
         sometimes(
             iaa.CropAndPad(percent=(-0.05, 0.1), pad_mode=imgaug.ALL, pad_cval=(0, 255))
         ),
-        iaa.OneOf(
+        sometimes(iaa.OneOf(
             [
                 iaa.Dropout(
                     (0.01, 0.1), per_channel=0.5
@@ -56,22 +58,32 @@ seq = iaa.Sequential(
                     (0.03, 0.15), size_percent=(0.02, 0.05), per_channel=0.2
                 ),
             ]
-        ),
-        iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),  # sharpen images
+        )),
+        # iaa.BlendAlphaSimplexNoise(iaa.OneOf([
+        #     iaa.EdgeDetect(alpha=(0.5, 1.0)),
+        #     iaa.DirectedEdgeDetect(alpha=(0.5, 1.0), direction=(0.0, 1.0)),
+        # ])),
+        iaa.LinearContrast((0.5, 2.0), per_channel=0.5), # improve or worsen the contrast
+        sometimes(iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25)), # move pixels locally around (with random strengths)
+        sometimes(iaa.PiecewiseAffine(scale=(0.01, 0.05))), # sometimes move parts of the image around
+        #sometimes(iaa.PerspectiveTransform(scale=(0.01, 0.1))),
+        #sometimes(iaa.pillike.FilterContour()),
+        sometimes(iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5))),  # sharpen images
+        sometimes(iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5)), # add gaussian noise to images
         # iaa.Fliplr(0.1),  # horizontally flip 10% of the images
-        iaa.GaussianBlur(sigma=(0, 3.0)),  # blur images with a sigma of 0 to 3.0
+        sometimes(iaa.GaussianBlur(sigma=(0, 3.0))),  # blur images with a sigma of 0 to 3.0
         iaa.Resize((20, 20), interpolation=Image.Resampling.LANCZOS),
-        iaa.Grayscale(alpha=1.0),
+         # iaa.Grayscale(alpha=(0.0, 1.0)),
     ]
 )
 
 if __name__ == "__main__":
 
-    for idx in range(5):
+    for idx in range(7):
 
         accuracy = 0
 
-        while accuracy < 0.87:
+        while accuracy < 0.84:
 
             images, exp_output = load_images("data")
             images_aug = seq(images=images)
@@ -96,23 +108,27 @@ if __name__ == "__main__":
                 one_hot_output[i][outputs.index(label)] = 1
 
             X_train, X_test, y_train, y_test = train_test_split(
-                train_input, one_hot_output, test_size=0.25
+                train_input,
+                one_hot_output,
+                test_size=0.2,
             )
 
             mlp = MLPClassifier(
                 hidden_layer_sizes=(
-                    800,
-                    500,
                     300,
+                    200,
                     100,
                 ),
-                max_iter=50000,
-                alpha=0.1,
+                max_iter=30000,
+                #alpha=0.1,
                 activation="tanh",
                 solver="lbfgs",
+                #learning_rate="adaptive",
+                # early_stopping=True,
                 # verbose=True,
                 # random_state=1,
                 tol=1e-4,
+                warm_start=True,
             )
 
             mlp.fit(X_train, y_train)

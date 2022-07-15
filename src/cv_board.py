@@ -181,7 +181,7 @@ def group_by_rectangle_area(rectangles, area_delta: float):
     """Groups rectangles by area"""
 
     data = np.array([(abs(r[0] - r[2]), abs(r[1] - r[3])) for r in rectangles])
-    db = DBSCAN(eps=area_delta / 100, min_samples=10, n_jobs=-1)
+    db = DBSCAN(eps=area_delta / 100, min_samples=10)
     db.fit(data)
 
     clusters = defaultdict(list)
@@ -276,12 +276,12 @@ def rect_distances(rectangles, width, height):
     ]
 
     for p in center_points:
-        if p[0] < 0 or  p[0] > width:
+        if p[0] < 0 or p[0] > width:
             outstanders += 1
-        elif p[1] < 0 or  p[1] > height:
+        elif p[1] < 0 or p[1] > height:
             outstanders += 1
 
-    if len(rectangles) < 64:
+    if len(rectangles) < BOARD_SQUARES - 1:
         return 0
 
     # try x axist first and then y axis
@@ -455,13 +455,8 @@ def recognize_board(img, debug):
 
     board_found = False
 
-    # dynamic parameters for genetic algorithm
-    # rectangles_group_epsilon = 110
-    # max_lines = 30
-    # sol_per_pop = 50
-
-    rectangles_group_epsilon = 220
-    max_lines = 40
+    rectangles_group_epsilon = 400
+    max_lines = 60
     sol_per_pop = 100
 
     # add size constraints?
@@ -501,8 +496,8 @@ def recognize_board(img, debug):
             gene_type=int,
             sol_per_pop=sol_per_pop,
             num_genes=11,
-            #parallel_processing=["thread", 2],  # looks like this feature is buggy
-            stop_criteria=["reach_64", "saturate_6"],
+            # parallel_processing=["thread", 2],  # looks like this feature is buggy
+            stop_criteria=["reach_64", "saturate_4"],
         )
 
         ga_instance.run()

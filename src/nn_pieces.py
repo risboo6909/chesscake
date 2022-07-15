@@ -8,7 +8,7 @@ from collections import defaultdict, Counter
 # small letters are for black pieces
 # capital letters are for white pieces
 # all sorted alphabetically
-labels = ["b", "B", "k", "K", "n", "N", "p", "P", "q", "Q", "r", "R"]
+labels = ["b", "B", "e", "E", "k", "K", "n", "N", "p", "P", "q", "Q", "r", "R"]
 
 
 def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> str:
@@ -34,7 +34,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
     for img in cropped_squares:
         img = cv.resize(img, (20, 20), interpolation=cv.INTER_LANCZOS4)
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-        flatten.append(img.flatten())
+        flatten.append(gray.flatten())
 
     # normalize pixels intensity
     flatten = np.array(flatten) / 255.0
@@ -48,9 +48,11 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             except ValueError:
                 pass
 
-    consensus = 1
+    consensus = 4
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
+        if labels[class_idx] == 'e' or labels[class_idx] == 'E':
+            continue
         if agreed >= consensus:
             board.set_piece_at(square_idx, chess.Piece.from_symbol(labels[class_idx]))
 
