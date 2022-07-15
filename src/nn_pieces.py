@@ -41,12 +41,12 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
 
     results = defaultdict(Counter)
     for mlp in models:
-        for square_idx, v in zip(range(64), mlp.predict_proba(flatten)):
-            # get index of max value
-            class_idx = np.argmax(v)
-            # get most probable class
-            if max(v) > 0.5:
+        for square_idx, res in zip(range(64), mlp.predict(flatten)):
+            try:
+                class_idx = list(res).index(1)
                 results[square_idx][class_idx] += 1
+            except ValueError:
+                pass
 
     consensus = 1
     for square_idx, decisions in results.items():

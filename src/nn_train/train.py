@@ -67,7 +67,7 @@ seq = iaa.Sequential(
 
 if __name__ == "__main__":
 
-    for idx in range(1):
+    for idx in range(5):
 
         accuracy = 0
 
