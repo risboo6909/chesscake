@@ -45,7 +45,7 @@ ray.init()
 
 models = load_models()
 stats = Stats()
-task_mgr = TaskManager(models, stats)
+task_mgr = TaskManager(models, stats, pool_size=2)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -65,18 +65,30 @@ async def upload_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     new_file = await update.message.photo[-1].get_file()
     await new_file.download(out=buffer)
     context.bot_data["buffer"] = buffer
-    reply_keyboard = [["A1", "A8", "H1", "H8"]]
+    reply_keyboard = [["A1", "H8"]]
 
     await update.message.reply_text(
         text="What cell is located in the bottom left corner of the board?",
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard,
             one_time_keyboard=True,
-            input_field_placeholder="A1, A8, H1 or H8?",
+            input_field_placeholder="A1 or H8?",
         ),
     )
     return WHO_MOVES
 
+async def upload_photo_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        text="Please send me a photo of a chessboard"
+    )
+    return UPLOAD_PHOTO
+
+
+async def board_side_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        text="Please specify what cell is located at the bottom left corner of the board"
+    )
+    return WHO_MOVES
 
 async def who_moves(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_keyboard = [["White", "Black"]]
@@ -92,11 +104,24 @@ async def who_moves(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return RECOGNIZE
 
+async def who_moves_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        text="Please specify who moves first (White or Black)"
+    )
+    return RECOGNIZE
+
+
+async def end_poll_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        text="Please answer Yes, No or Partially"
+    )
+    return END_POLL
+
 
 async def end_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_feedback = update.message.text
     await update.message.reply_text(
-        "Thank you for using this bot",
+        "Thank you for using the bot",
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -237,15 +262,19 @@ if __name__ == "__main__":
         states={
             UPLOAD_PHOTO: [
                 MessageHandler(filters.PHOTO, upload_photo),
+                MessageHandler(filters.ALL, upload_photo_help)
             ],
             WHO_MOVES: [
                 MessageHandler(filters.Regex("^(A1|A8|H1|H8|a1|a8|h1|h8)$"), who_moves),
+                MessageHandler(filters.ALL, board_side_help),
             ],
             RECOGNIZE: [
                 MessageHandler(filters.Regex("^(White|Black)$"), recognize),
+                MessageHandler(filters.ALL, who_moves_help),
             ],
             END_POLL: [
                 MessageHandler(filters.Regex("^(Yes|No|Partially)$"), end_poll),
+                MessageHandler(filters.ALL, end_poll_help),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],

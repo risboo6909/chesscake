@@ -21,10 +21,6 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
 
     if bottom_left == "A1":
         bottom_left = chess.A1
-    elif bottom_left == "A8":
-        bottom_left = chess.A8
-    elif bottom_left == "H1":
-        bottom_left = chess.H1
     elif bottom_left == "H8":
         bottom_left = chess.H8
 
@@ -58,9 +54,6 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
 
     if bottom_left == chess.A1:
         board = board.transform(chess.flip_vertical)
-    elif bottom_left == chess.H1:
-        board = board.transform(chess.flip_vertical)
-        board = board.transform(chess.flip_horizontal)
     elif bottom_left == chess.H8:
         board = board.transform(chess.flip_horizontal)
 

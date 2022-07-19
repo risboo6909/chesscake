@@ -63,10 +63,11 @@ class Result(object):
 
 
 class TaskManager(object):
-    def __init__(self, models, stats):
+    def __init__(self, models, stats, pool_size=1):
         self.tasks = Queue(maxsize=MAX_QUEUE_SIZE)
         self.models = models
         self.stats = stats
+        self.pool_size = pool_size
         self.user_ids = set()
 
     def job_requested(self, user_id):
@@ -76,15 +77,15 @@ class TaskManager(object):
         return self.tasks.qsize()
 
     def start(self):
-        worker = threading.Thread(target=lambda: self.worker())
-        worker.start()
+        for worker_no in range(self.pool_size):
+            threading.Thread(target=lambda: self.worker(worker_no)).start()
 
-    def worker(self):
+    def worker(self, worker_no):
         while True:
             try:
                 self.stats.queue_size = self.get_queue_size()
                 task = self.dequeue_task()
-                print("Processing task '{}'".format(task.ticket))
+                print("Worker {} processing task '{}'".format(worker_no, task.ticket))
                 future = recognize.remote(
                     self.models, task.board, task.turn, task.bottom_left
                 )
