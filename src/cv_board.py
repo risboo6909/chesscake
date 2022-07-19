@@ -455,7 +455,7 @@ def recognize_board(img, debug):
 
     board_found = False
 
-    rectangles_group_epsilon = 400
+    rectangles_group_epsilon = 600
     max_lines = 60
     sol_per_pop = 100
 

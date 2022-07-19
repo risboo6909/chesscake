@@ -44,7 +44,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             except ValueError:
                 pass
 
-    consensus = 4
+    consensus = 2
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if labels[class_idx] == 'e' or labels[class_idx] == 'E':
