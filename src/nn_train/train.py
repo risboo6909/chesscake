@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
         accuracy = 0
 
-        while accuracy < 0.84:
+        while accuracy < 0.85:
 
             images, exp_output = load_images("data")
             images_aug = seq(images=images)
