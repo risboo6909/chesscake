@@ -28,7 +28,8 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
     board.clear_board()
 
     for img in cropped_squares:
-        img = cv.resize(img, (20, 20), interpolation=cv.INTER_LANCZOS4)
+        img = cv.bilateralFilter(img, 25, 75, 75)
+        img = cv.resize(img, (40, 40), interpolation=cv.INTER_LANCZOS4)
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         flatten.append(gray.flatten())
 
@@ -44,7 +45,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             except ValueError:
                 pass
 
-    consensus = 4
+    consensus = 2
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if agreed >= consensus:

@@ -31,14 +31,16 @@ def load_images(train_folder_path):
         if not label:
             continue
 
-        for _ in range(5):
-            images.append(
-                cv.cvtColor(
-                    cv.imread(file_path)
-                , cv.COLOR_BGR2GRAY),
-            )
-
+        for _ in range(10):
+            img = cv.imread(file_path)
+            img = cv.bilateralFilter(img, 25, 75, 75)
+            img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+            #img = cv.resize(img, (40, 40), interpolation=cv.INTER_LANCZOS4)
+            images.append(img)
             labels.append(label)
+
+    # cv.imshow("Debug", images[300])
+    # cv.waitKey(0)
 
     return images, labels
 
@@ -59,10 +61,12 @@ seq = iaa.Sequential(
                 ),
             ]
         )),
+        
         # iaa.BlendAlphaSimplexNoise(iaa.OneOf([
         #     iaa.EdgeDetect(alpha=(0.5, 1.0)),
         #     iaa.DirectedEdgeDetect(alpha=(0.5, 1.0), direction=(0.0, 1.0)),
         # ])),
+
         iaa.LinearContrast((0.5, 2.0), per_channel=0.5), # improve or worsen the contrast
         sometimes(iaa.OneOf([
             iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25),
@@ -70,9 +74,9 @@ seq = iaa.Sequential(
             iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
             iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
         ])),
-        # iaa.Fliplr(0.1),  # horizontally flip 10% of the images
+        iaa.Fliplr(0.1),  # horizontally flip 10% of the images
         sometimes(iaa.GaussianBlur(sigma=(0, 3.0))),  # blur images with a sigma of 0 to 3.0
-        iaa.Resize((20, 20), interpolation=Image.Resampling.LANCZOS),
+        iaa.Resize((40, 40), interpolation=Image.Resampling.LANCZOS),
          # iaa.Grayscale(alpha=(0.0, 1.0)),
     ]
 )
@@ -83,7 +87,7 @@ if __name__ == "__main__":
 
         accuracy = 0
 
-        while accuracy < 0.87:
+        while accuracy < 0.88:
 
             images, exp_output = load_images("data")
             images_aug = seq(images=images)
@@ -110,14 +114,13 @@ if __name__ == "__main__":
             X_train, X_test, y_train, y_test = train_test_split(
                 train_input,
                 one_hot_output,
-                test_size=0.1,
+                test_size=0.3,
             )
 
             mlp = MLPClassifier(
                 hidden_layer_sizes=(
-                    200,
-                    200,
-                    200,
+                    300,
+                    100,
                 ),
                 max_iter=30000,
                 alpha=0.1,

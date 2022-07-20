@@ -275,14 +275,14 @@ def rect_distances(rectangles, width, height):
         for r in rectangles
     ]
 
-    for p in center_points:
-        if p[0] < 0 or p[0] > width:
+    for r in rectangles:
+        if r[0] < 0 or r[2] > width:
             outstanders += 1
-        elif p[1] < 0 or p[1] > height:
+        elif r[1] < 0 or r[3] > height:
             outstanders += 1
 
-    if len(rectangles) < BOARD_SQUARES - 1:
-        return 0
+    if outstanders > 0 or len(rectangles) < (BOARD_SQUARES << 1):
+        return outstanders
 
     # try x axist first and then y axis
     for coord_idx, sort_order in enumerate([(1, 0), (0, 1)]):
@@ -406,6 +406,7 @@ def scan(img, inp, debug):
 
 
 def do_recognize(img):
+    #img = cv.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
     def inner(inp, _):
         best_fitness, _ = scan(img, inp, debug=False)
         return best_fitness
@@ -455,8 +456,8 @@ def recognize_board(img, debug):
 
     board_found = False
 
-    rectangles_group_epsilon = 600
-    max_lines = 60
+    rectangles_group_epsilon = 400
+    max_lines = 30
     sol_per_pop = 100
 
     # add size constraints?
@@ -497,7 +498,7 @@ def recognize_board(img, debug):
             sol_per_pop=sol_per_pop,
             num_genes=11,
             # parallel_processing=["thread", 2],  # looks like this feature is buggy
-            stop_criteria=["reach_64", "saturate_4"],
+            stop_criteria=["reach_64", "saturate_3"],
         )
 
         ga_instance.run()
