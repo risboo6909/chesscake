@@ -31,7 +31,7 @@ def load_images(train_folder_path):
         if not label:
             continue
 
-        for _ in range(10):
+        for _ in range(5):
             images.append(
                 cv.cvtColor(
                     cv.imread(file_path)
@@ -64,12 +64,12 @@ seq = iaa.Sequential(
         #     iaa.DirectedEdgeDetect(alpha=(0.5, 1.0), direction=(0.0, 1.0)),
         # ])),
         iaa.LinearContrast((0.5, 2.0), per_channel=0.5), # improve or worsen the contrast
-        sometimes(iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25)), # move pixels locally around (with random strengths)
-        sometimes(iaa.PiecewiseAffine(scale=(0.01, 0.05))), # sometimes move parts of the image around
-        #sometimes(iaa.PerspectiveTransform(scale=(0.01, 0.1))),
-        #sometimes(iaa.pillike.FilterContour()),
-        sometimes(iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5))),  # sharpen images
-        sometimes(iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5)), # add gaussian noise to images
+        sometimes(iaa.OneOf([
+            iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25),
+            iaa.PiecewiseAffine(scale=(0.01, 0.05)),
+            iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
+            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
+        ])),
         # iaa.Fliplr(0.1),  # horizontally flip 10% of the images
         sometimes(iaa.GaussianBlur(sigma=(0, 3.0))),  # blur images with a sigma of 0 to 3.0
         iaa.Resize((20, 20), interpolation=Image.Resampling.LANCZOS),
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
         accuracy = 0
 
-        while accuracy < 0.85:
+        while accuracy < 0.87:
 
             images, exp_output = load_images("data")
             images_aug = seq(images=images)
@@ -110,17 +110,17 @@ if __name__ == "__main__":
             X_train, X_test, y_train, y_test = train_test_split(
                 train_input,
                 one_hot_output,
-                test_size=0.2,
+                test_size=0.1,
             )
 
             mlp = MLPClassifier(
                 hidden_layer_sizes=(
-                    300,
                     200,
-                    100,
+                    200,
+                    200,
                 ),
                 max_iter=30000,
-                #alpha=0.1,
+                alpha=0.1,
                 activation="tanh",
                 solver="lbfgs",
                 #learning_rate="adaptive",

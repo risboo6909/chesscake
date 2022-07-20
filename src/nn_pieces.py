@@ -44,12 +44,12 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             except ValueError:
                 pass
 
-    consensus = 2
+    consensus = 4
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
-        if labels[class_idx] == 'e' or labels[class_idx] == 'E':
-            continue
         if agreed >= consensus:
+            if labels[class_idx] == 'e' or labels[class_idx] == 'E':
+                continue
             board.set_piece_at(square_idx, chess.Piece.from_symbol(labels[class_idx]))
 
     if bottom_left == chess.A1:

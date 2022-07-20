@@ -261,18 +261,22 @@ if __name__ == "__main__":
         ],
         states={
             UPLOAD_PHOTO: [
+                CommandHandler("cancel", cancel),
                 MessageHandler(filters.PHOTO, upload_photo),
-                MessageHandler(filters.ALL, upload_photo_help)
+                MessageHandler(filters.ALL, upload_photo_help),
             ],
             WHO_MOVES: [
+                CommandHandler("cancel", cancel),
                 MessageHandler(filters.Regex("^(A1|A8|H1|H8|a1|a8|h1|h8)$"), who_moves),
                 MessageHandler(filters.ALL, board_side_help),
             ],
             RECOGNIZE: [
+                CommandHandler("cancel", cancel),
                 MessageHandler(filters.Regex("^(White|Black)$"), recognize),
                 MessageHandler(filters.ALL, who_moves_help),
             ],
             END_POLL: [
+                CommandHandler("cancel", cancel),
                 MessageHandler(filters.Regex("^(Yes|No|Partially)$"), end_poll),
                 MessageHandler(filters.ALL, end_poll_help),
             ],
