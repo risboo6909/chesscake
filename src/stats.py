@@ -1,12 +1,14 @@
 class Stats(object):
     def __init__(self):
         self.requests_total = 0
+        self.requests_canceled = 0
         self.requests_success = 0
         self.requests_failed = 0
         self.feedback_recognize_ok = 0
         self.feedback_recognize_fail = 0
         self.feedback_recognize_part = 0
         self.queue_size = 0
+        self.unique_users = set()
         self.request_times = []
 
     def add_request_time(self, time):
@@ -15,6 +17,10 @@ class Stats(object):
             self.request_times.pop(0)
 
     def get_stats(self):
+        last_request_time = 0
+        if len(self.request_times) > 0:
+            last_request_time = self.request_times[-1]
+
         request_times = sorted(self.request_times)
 
         perc50 = perc90 = perc99 = 0
@@ -28,22 +34,28 @@ class Stats(object):
 
         return (
             "Total requests: {}\n"
+            "Unique users: {}\n"
+            "Canceled requests: {}\n"
             "Successful requests: {}\n"
             "Failed requests: {}\n"
             "Precise recognitions: {}\n"
             "Wrong recognitions: {}\n"
             "Partially precise recognition: {}\n"
             "Tasks queue size: {}\n"
+            "Last request time: {:.2f} sec\n"
             "Request times 50 percentile: {:.2f} sec\n"
             "Request times 90 percentile: {:.2f} sec\n"
             "Request times 99 percentile: {:.2f} sec\n".format(
                 self.requests_total,
+                len(self.unique_users),
+                self.requests_canceled,
                 self.requests_success,
                 self.requests_failed,
                 self.feedback_recognize_ok,
                 self.feedback_recognize_fail,
                 self.feedback_recognize_part,
                 self.queue_size,
+                last_request_time,
                 perc50,
                 perc90,
                 perc99,

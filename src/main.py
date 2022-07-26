@@ -6,6 +6,7 @@ import chess
 import joblib
 import ray
 import time
+import hashlib
 
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
@@ -77,10 +78,9 @@ async def upload_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     )
     return WHO_MOVES
 
+
 async def upload_photo_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text(
-        text="Please send me a photo of a chessboard"
-    )
+    await update.message.reply_text(text="Please send me a photo of a chessboard")
     return UPLOAD_PHOTO
 
 
@@ -89,6 +89,7 @@ async def board_side_help(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         text="Please specify what cell is located at the bottom left corner of the board"
     )
     return WHO_MOVES
+
 
 async def who_moves(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_keyboard = [["White", "Black"]]
@@ -104,6 +105,7 @@ async def who_moves(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return RECOGNIZE
 
+
 async def who_moves_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         text="Please specify who moves first (White or Black)"
@@ -112,9 +114,7 @@ async def who_moves_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def end_poll_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text(
-        text="Please answer Yes, No or Partially"
-    )
+    await update.message.reply_text(text="Please answer Yes, No or Partially")
     return END_POLL
 
 
@@ -140,6 +140,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         "Bye! I hope we can talk again some day", reply_markup=ReplyKeyboardRemove()
     )
+    stats.requests_canceled += 1
     return ConversationHandler.END
 
 
@@ -152,6 +153,7 @@ async def get_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     turn = update.message.text
+    user = update.message.from_user
 
     task = Task(
         turn,
@@ -185,6 +187,8 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stats.add_request_time(time.time() - st)
 
     stats.requests_total += 1
+    stats.unique_users.add(hashlib.md5(user.username.encode('utf-8')).hexdigest())
+
     if isinstance(task.result[0], Err):
         stats.requests_failed += 1
         await context.bot.send_message(
