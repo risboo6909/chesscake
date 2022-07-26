@@ -4,6 +4,8 @@ from points_area.points import PointsInArea
 from sklearn.cluster import DBSCAN
 from operator import itemgetter
 from typing import List, Tuple
+from collections import namedtuple
+from functools import partial
 import cv2 as cv
 import random
 import numpy as np
@@ -405,13 +407,10 @@ def scan(img, inp, debug):
     return best_fitness, best_cluster
 
 
-def do_recognize(img):
-    #img = cv.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
-    def inner(inp, _):
-        best_fitness, _ = scan(img, inp, debug=False)
-        return best_fitness
-
-    return inner
+def do_recognize(img, inp, _):
+    # img = cv.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+    best_fitness, _ = scan(img, inp, debug=False)
+    return best_fitness
 
 
 def crop_squares(img, rectangles: List[Tuple[float, float, float, float]]):
@@ -454,6 +453,12 @@ def recognize_board(img, debug):
 
     img_height, img_width, _ = img.shape
 
+    # this is dirty hack is to allow pygad's multiprocessing
+    Dummy = namedtuple("Dummy", "co_argcount")
+    find_board = partial(do_recognize, img)
+    # pygad checks that function has correct number of arguments using __code__ property
+    find_board.__code__ = Dummy(co_argcount=2)
+
     board_found = False
 
     rectangles_group_epsilon = 400
@@ -467,8 +472,6 @@ def recognize_board(img, debug):
 
         print("new epoch")
 
-        find_board = do_recognize(img)
-
         ga_instance = pygad.GA(
             num_parents_mating=6,
             num_generations=12,
@@ -480,8 +483,8 @@ def recognize_board(img, debug):
             crossover_probability=0.2,
             on_generation=func_generation,
             gene_space=[
-                range(1, 100),  # threshold1 for Canny
-                range(1, 200),  # threshold2 for Canny
+                range(1, 100, 10),  # threshold1 for Canny
+                range(1, 200, 10),  # threshold2 for Canny
                 range(
                     80, max(img_width, img_height) + 2
                 ),  # minimum points laying on line
