@@ -27,11 +27,14 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
     board = chess.Board()
     board.clear_board()
 
+    crop_margin = 4
+
     for img in cropped_squares:
         img = cv.bilateralFilter(img, 25, 75, 75)
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        img = img[crop_margin:-crop_margin, crop_margin:-crop_margin]
         img = cv.resize(img, (40, 40), interpolation=cv.INTER_LANCZOS4)
-        gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-        flatten.append(gray.flatten())
+        flatten.append(img.flatten())
 
     # normalize pixels intensity
     flatten = np.array(flatten) / 255.0
@@ -49,7 +52,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if agreed >= consensus:
-            if labels[class_idx] == 'e' or labels[class_idx] == 'E':
+            if labels[class_idx] == "e" or labels[class_idx] == "E":
                 continue
             board.set_piece_at(square_idx, chess.Piece.from_symbol(labels[class_idx]))
 

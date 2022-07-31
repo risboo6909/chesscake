@@ -22,6 +22,8 @@ def get_label(file_path):
 def load_images(train_folder_path):
     """Load images from folder and return them as numpy array"""
 
+    crop_margin = 4
+
     images = []
     labels = []
 
@@ -35,11 +37,11 @@ def load_images(train_folder_path):
             img = cv.imread(file_path)
             img = cv.bilateralFilter(img, 25, 75, 75)
             img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-            #img = cv.resize(img, (40, 40), interpolation=cv.INTER_LANCZOS4)
+            img = img[crop_margin:-crop_margin, crop_margin:-crop_margin]
             images.append(img)
             labels.append(label)
 
-    # cv.imshow("Debug", images[300])
+    # cv.imshow("Debug", images[355])
     # cv.waitKey(0)
 
     return images, labels
@@ -51,33 +53,43 @@ seq = iaa.Sequential(
         sometimes(
             iaa.CropAndPad(percent=(-0.05, 0.1), pad_mode=imgaug.ALL, pad_cval=(0, 255))
         ),
-        sometimes(iaa.OneOf(
-            [
-                iaa.Dropout(
-                    (0.01, 0.1), per_channel=0.5
-                ),  # randomly remove up to 10% of the pixels
-                iaa.CoarseDropout(
-                    (0.03, 0.15), size_percent=(0.02, 0.05), per_channel=0.2
-                ),
-            ]
-        )),
-        
+        sometimes(
+            iaa.OneOf(
+                [
+                    iaa.Dropout(
+                        (0.01, 0.1), per_channel=0.5
+                    ),  # randomly remove up to 10% of the pixels
+                    iaa.CoarseDropout(
+                        (0.03, 0.15), size_percent=(0.02, 0.05), per_channel=0.2
+                    ),
+                ]
+            )
+        ),
         # iaa.BlendAlphaSimplexNoise(iaa.OneOf([
         #     iaa.EdgeDetect(alpha=(0.5, 1.0)),
         #     iaa.DirectedEdgeDetect(alpha=(0.5, 1.0), direction=(0.0, 1.0)),
         # ])),
-
-        iaa.LinearContrast((0.5, 2.0), per_channel=0.5), # improve or worsen the contrast
-        sometimes(iaa.OneOf([
-            iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25),
-            iaa.PiecewiseAffine(scale=(0.01, 0.05)),
-            iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
-            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
-        ])),
+        iaa.LinearContrast(
+            (0.5, 2.0), per_channel=0.5
+        ),  # improve or worsen the contrast
+        sometimes(
+            iaa.OneOf(
+                [
+                    iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25),
+                    iaa.PiecewiseAffine(scale=(0.01, 0.05)),
+                    iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
+                    iaa.AdditiveGaussianNoise(
+                        loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5
+                    ),
+                ]
+            )
+        ),
         iaa.Fliplr(0.1),  # horizontally flip 10% of the images
-        sometimes(iaa.GaussianBlur(sigma=(0, 3.0))),  # blur images with a sigma of 0 to 3.0
+        sometimes(
+            iaa.GaussianBlur(sigma=(0, 3.0))
+        ),  # blur images with a sigma of 0 to 3.0
         iaa.Resize((40, 40), interpolation=Image.Resampling.LANCZOS),
-         # iaa.Grayscale(alpha=(0.0, 1.0)),
+        # iaa.Grayscale(alpha=(0.0, 1.0)),
     ]
 )
 
@@ -114,19 +126,19 @@ if __name__ == "__main__":
             X_train, X_test, y_train, y_test = train_test_split(
                 train_input,
                 one_hot_output,
-                test_size=0.3,
+                test_size=0.1,
             )
 
             mlp = MLPClassifier(
                 hidden_layer_sizes=(
-                    300,
                     100,
+                    50,
                 ),
                 max_iter=30000,
                 alpha=0.1,
                 activation="tanh",
                 solver="lbfgs",
-                #learning_rate="adaptive",
+                # learning_rate="adaptive",
                 # early_stopping=True,
                 # verbose=True,
                 # random_state=1,

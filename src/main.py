@@ -187,7 +187,7 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stats.add_request_time(time.time() - st)
 
     stats.requests_total += 1
-    stats.unique_users.add(hashlib.md5(user.username.encode('utf-8')).hexdigest())
+    stats.unique_users.add(hashlib.md5(user.username.encode("utf-8")).hexdigest())
 
     if isinstance(task.result[0], Err):
         stats.requests_failed += 1

@@ -13,6 +13,7 @@ import pygad
 import sys
 
 BOARD_SQUARES = 64
+RECTANGLE_VERTEX_DEVIATION = 8
 
 
 def draw_debug_lines(img, lines, color, size_x, size_y):
@@ -329,7 +330,6 @@ def scan(img, inp, debug):
         min_points_per_line,
         k_size_x,
         k_size_y,
-        side_len,
         min_side_len,
         max_side_len,
         area_delta,
@@ -368,7 +368,7 @@ def scan(img, inp, debug):
 
     # find rectangles based on lines intersections
     recognized_rectangles = find_rectangles(
-        sorted_intersections, side_len, min_side_len, max_side_len
+        sorted_intersections, RECTANGLE_VERTEX_DEVIATION, min_side_len, max_side_len
     )
 
     if recognized_rectangles:
@@ -490,7 +490,6 @@ def recognize_board(img, debug):
                 ),  # minimum points laying on line
                 range(1, 11, 2),  # gauss
                 range(1, 11, 2),  # gauss
-                range(0, 8),  # maximum dispersion for a point of rectangle
                 range(10, 80, 3),  # minimum side length
                 range(10, 300, 3),  # maximum side length
                 range(30, rectangles_group_epsilon),  # epsilon for DBSCAN algorithm
@@ -499,7 +498,7 @@ def recognize_board(img, debug):
             ],
             gene_type=int,
             sol_per_pop=sol_per_pop,
-            num_genes=11,
+            num_genes=10,
             # parallel_processing=["thread", 2],  # looks like this feature is buggy
             stop_criteria=["reach_64", "saturate_3"],
         )
