@@ -3,6 +3,7 @@ import os
 import io
 import sys
 import chess
+import stockfish
 import joblib
 import ray
 import time
@@ -29,8 +30,8 @@ samples_dir = os.path.join(parent_dir, "samples")
 
 UPLOAD_PHOTO, WHO_MOVES, RECOGNIZE, END_POLL = range(4)
 
-lichess_url = "https://lichess.org/editor/{}".format
-
+lichess_editor_url = "https://lichess.org/editor/{}".format
+lichess_analyze_url = "https://lichess.org/analysis/{}".format
 
 def load_models():
     models = []
@@ -198,11 +199,22 @@ async def recognize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         stats.requests_success += 1
         board = task.result[0].value
+        engine_result = "Stockfish analysis is not available"
+
+        # analyze with stockfish
+        info = stockfish.AnalysisResult(stockfish.analyze_board(board))
+        if info.analysis_ready():
+            engine_result = "Best line: `{}`".format(info.get_moves())
+
         fen = board.fen()
         fen_url = fen.replace(" ", "_")
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f"Board:`\n{board}`\n\nFEN: `{fen}`\n\nAnalyze on [lichess]({lichess_url(fen_url)})",
+            text=f"""
+Board:`\n{board}`\n\nFEN: `{fen}`
+\n[Edit]({lichess_editor_url(fen_url)}) or [analyze]({lichess_analyze_url(fen_url)}) position on lichess\.org
+\n{engine_result}
+            """,
             parse_mode=ParseMode.MARKDOWN_V2,
         )
         # ask user about recognition quality

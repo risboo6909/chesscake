@@ -1,50 +1,12 @@
-import glob
-import os
 import numpy as np
 import joblib
-import cv2 as cv
 import imgaug
+
+from src.training import load_images
 from PIL import Image
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from imgaug import augmenters as iaa
-
-
-def get_label(file_path):
-    file_name = os.path.basename(file_path)
-    # classic_knight_black_1.png -> knight_black_1
-    try:
-        return file_name.split(".")[0].split("_", 1)[1].rsplit("_", 1)[0]
-    except:
-        pass
-
-
-def load_images(train_folder_path):
-    """Load images from folder and return them as numpy array"""
-
-    crop_margin = 4
-
-    images = []
-    labels = []
-
-    for file_path in sorted(glob.iglob(os.path.join(train_folder_path, "*.png"))):
-        label = get_label(file_path)
-
-        if not label:
-            continue
-
-        for _ in range(10):
-            img = cv.imread(file_path)
-            img = cv.bilateralFilter(img, 25, 75, 75)
-            img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-            img = img[crop_margin:-crop_margin, crop_margin:-crop_margin]
-            images.append(img)
-            labels.append(label)
-
-    # cv.imshow("Debug", images[355])
-    # cv.waitKey(0)
-
-    return images, labels
 
 
 sometimes = lambda aug: iaa.Sometimes(0.3, aug)
@@ -101,7 +63,7 @@ if __name__ == "__main__":
 
         while accuracy < 0.88:
 
-            images, exp_output = load_images("data")
+            images, exp_output = load_images("src/training/data")
             images_aug = seq(images=images)
             uniq_labels = sorted(list(set(exp_output)))
 

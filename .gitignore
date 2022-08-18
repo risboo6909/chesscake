@@ -1,5 +1,6 @@
 .DS_Store
 src/nn_train/data/*.png
+src/training/data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

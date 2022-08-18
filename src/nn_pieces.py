@@ -48,7 +48,7 @@ def recognize_pieces(models, cropped_squares, turn: str, bottom_left: str) -> st
             except ValueError:
                 pass
 
-    consensus = 2
+    consensus = 3
     for square_idx, decisions in results.items():
         class_idx, agreed = max(decisions.items(), key=operator.itemgetter(1))
         if agreed >= consensus:
